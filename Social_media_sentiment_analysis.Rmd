@@ -1,0 +1,1160 @@
+---
+theme: CambridgeUS
+colortheme: seahorse
+fonttheme: professionalfonts
+output: beamer_presentation
+editor_options: 
+  chunk_output_type: console
+header-includes:
+  - \usepackage{color}
+---
+
+\color{black}
+
+\begin{center}
+\LARGE{\textbf{Tesla Vs Legacy}}
+\end{center}
+
+\begin{center}
+\LARGE{In the electric vehicle market}
+\end{center}
+
+\color{black}
+\vspace{0.2cm}
+
+\begin{center}
+\large{\textit{\textbf{Authors:}}}
+\end{center}
+
+\begin{center}
+\small{\textit{10555259, 10745120}}
+\end{center}
+
+\begin{center}
+\small{\textit{10612662, 10736072}}
+\end{center}
+
+\begin{center}
+\small{Date: 6 December 2021}
+\end{center}
+
+\begin{center}
+  \includegraphics[height=.2\textheight]{PlymUni.png}
+\end{center}
+
+```{r Searching_tweets_method, include=FALSE}
+
+# token <- create_token(
+#   app = "Joshs_twitter_analysis",
+#   consumer_key = "",
+#   consumer_secret = "",
+#   access_token = "",
+#   access_secret = "")
+#
+# 
+# 
+#
+# Twitter query methodology:
+# Name of vehicle make or manufacturer in conjunction with keywords
+# "electric" and "EV".  Tweets containing both of these words in the body of 
+# their text will be delivered.
+# Search is limited to tweets in the English language, retweets are excluded.
+# Multiple simple queries are executed to avoid known known issues with Twitter
+# API in which complex queries can produce inaccurate or unexpected data. 
+# 
+# 
+#
+# # Tesla Queries
+# 
+# Tesla_electric <- search_tweets(q = "Tesla electric", n = 18000, lang = "en", include_rts = FALSE)
+# Tesla_EV <- search_tweets(q = "Tesla EV", n = 18000, lang = "en", include_rts = FALSE)
+# 
+# # Legacy automakers Queries
+# 
+# Audi_electric <- search_tweets(q = "Audi electric", n = 18000, lang = "en", include_rts = FALSE)
+# BMW_electric <- search_tweets(q = "BMW electric", n = 18000, lang = "en", include_rts = FALSE)
+# Chevrolet_electric <- search_tweets(q = "Chevrolet electric", n = 18000, lang = "en", include_rts = FALSE)
+# Chevy_electric <- search_tweets(q = "Chevy electric", n = 18000, lang = "en", include_rts = FALSE)
+# Citroen_electric <- search_tweets(q = "Citroen electric", n = 18000, lang = "en", include_rts = FALSE)
+# Fiat_electric <- search_tweets(q = "Fiat electric", n = 18000, lang = "en", include_rts = FALSE)
+# Ford_electric <- search_tweets(q = "Ford electric", n = 18000, lang = "en", include_rts = FALSE)
+# Honda_electric <- search_tweets(q = "Honda electric", n = 18000, lang = "en", include_rts = FALSE) 
+# Hyundai_electric <- search_tweets(q = "Hyundai electric", n = 18000, lang = "en", include_rts = FALSE)
+# Jaguar_electric <- search_tweets(q = "Jaguar electric", n = 18000, lang = "en", include_rts = FALSE)
+# Kia_electric <- search_tweets(q = "Kia electric", n = 18000, lang = "en", include_rts = FALSE)
+# Mazda_electric <- search_tweets(q = "Mazda electric", n = 18000, lang = "en", include_rts = FALSE)
+# Mercedes_electric <- search_tweets(q = "Mercedes electric", n = 18000, lang = "en", include_rts = FALSE)
+# Nissan_electric <- search_tweets(q = "Nissan electric", n = 18000, lang = "en", include_rts = FALSE)
+# Peugeot_electric <- search_tweets(q = "Peugeot electric", n = 18000, lang = "en", include_rts = FALSE)
+# Porsche_electric <- search_tweets(q = "Porsche electric", n = 18000, lang = "en", include_rts = FALSE)
+# Renault_electric <- search_tweets(q = "Renault electric", n = 18000, lang = "en", include_rts = FALSE)
+# Toyota_electric <- search_tweets(q = "Toyota electric", n = 18000, lang = "en", include_rts = FALSE)
+# Vauxhall_electric <- search_tweets(q = "Vauxhall electric", n = 18000, lang = "en", include_rts = FALSE)
+# Volkswagen_electric <- search_tweets(q = "Volkswagen electric", n = 18000, lang = "en", include_rts = FALSE)
+# VW_electric <- search_tweets(q = "VW electric", n = 18000, lang = "en", include_rts = FALSE)
+# Volvo_electric <- search_tweets(q = "Volvo electric", n = 18000, lang = "en", include_rts = FALSE)
+# 
+# Audi_EV <- search_tweets(q = "Audi EV", n = 18000, lang = "en", include_rts = FALSE)
+# BMW_EV <- search_tweets(q = "BMW EV", n = 18000, lang = "en", include_rts = FALSE)
+# Chevrolet_EV <- search_tweets(q = "Chevrolet EV", n = 18000, lang = "en", include_rts = FALSE)
+# Chevy_EV <- search_tweets(q = "Chevy EV", n = 18000, lang = "en", include_rts = FALSE)
+# Citroen_EV <- search_tweets(q = "Citroen EV", n = 18000, lang = "en", include_rts = FALSE)
+# Fiat_EV <- search_tweets(q = "Fiat EV", n = 18000, lang = "en", include_rts = FALSE)
+# Ford_EV <- search_tweets(q = "Ford EV", n = 18000, lang = "en", include_rts = FALSE)
+# Honda_EV <- search_tweets(q = "Honda EV", n = 18000, lang = "en", include_rts = FALSE)
+# Hyundai_EV <- search_tweets(q = "Hyundai EV", n = 18000, lang = "en", include_rts = FALSE)
+# Jaguar_EV <- search_tweets(q = "Jaguar EV", n = 18000, lang = "en", include_rts = FALSE)
+# Kia_EV <- search_tweets(q = "Kia EV", n = 18000, lang = "en", include_rts = FALSE)
+# Mazda_EV <- search_tweets(q = "Mazda EV", n = 18000, lang = "en", include_rts = FALSE)
+# Mercedes_EV <- search_tweets(q = "Mercedes EV", n = 18000, lang = "en", include_rts = FALSE)
+# Nissan_EV <- search_tweets(q = "Nissan EV", n = 18000, lang = "en", include_rts = FALSE)
+# Peugeot_EV <- search_tweets(q = "Peugeot EV", n = 18000, lang = "en", include_rts = FALSE)
+# Porsche_EV <- search_tweets(q = "Porsche EV", n = 18000, lang = "en", include_rts = FALSE)
+# Renault_EV <- search_tweets(q = "Renault EV", n = 18000, lang = "en", include_rts = FALSE)
+# Toyota_EV <- search_tweets(q = "Toyota EV", n = 18000, lang = "en", include_rts = FALSE)
+# Vauxhall_EV <- search_tweets(q = "Vauxhall EV", n = 18000, lang = "en", include_rts = FALSE)
+# Volkswagen_EV <- search_tweets(q = "Volkswagen EV", n = 18000, lang = "en", include_rts = FALSE)
+# VW_EV <- search_tweets(q = "VW EV", n = 18000, lang = "en", include_rts = FALSE) ##
+# Volvo_EV <- search_tweets(q = "Volvo EV", n = 18000, lang = "en", include_rts = FALSE)
+
+
+# Our queries will be used to construct two primary datasets:
+# Tesla and Legacy Automakers
+
+# The Legacy Automakers dataset is comprised of 20 leading automotive makes that
+# presently sell electric vehicles and are present in some English language market.
+
+# Full List
+# Audi, BMW, Chevrolet(Chevy), Citroen, Fiat, Ford, Honda, Hyundai, Jaguar, Kia
+# Mazda, Mercedes, Nissan, Peugeot, Porsche, Renault, Toyota, Volkswagen(VW), 
+# Polestar, Vauxhall, Volvo
+
+# Being equal in number of columns and their names, we can use rbind() to
+# combine the data frames for each of our two groups.
+
+# Tesla <- rbind(Tesla_electric, Tesla_EV)
+# 
+# Legacy_Automakers <- rbind(Audi_electric,Audi_EV,BMW_electric,BMW_EV,Chevrolet_electric,
+# Chevrolet_EV,Chevy_electric,Chevy_EV,Citroen_electric,Citroen_EV,Fiat_electric,Fiat_EV,
+# Ford_electric,Ford_EV,Honda_electric,Honda_EV,Hyundai_electric,Hyundai_EV,Jaguar_electric,
+# Jaguar_EV,Kia_electric,Kia_EV,Mazda_electric,Mazda_EV,Mercedes_electric,Mercedes_EV,
+# Nissan_electric,Nissan_EV,Peugeot_electric,Peugeot_EV,Porsche_electric,Porsche_EV,
+# Renault_electric,Renault_EV,Toyota_electric,Toyota_EV,Vauxhall_electric,Vauxhall_EV,
+# Volvo_electric,Volvo_EV,Volkswagen_electric,Volkswagen_EV,VW_electric,VW_EV)
+
+## Writing our samples to JSON files so we can access them later
+
+#Tesla %>% toJSON() %>% write_lines("Tesla.json")
+#Legacy %>% toJSON() %>% write_lines("Legacy.json")
+
+
+```
+
+```{r Libraries, include=FALSE}
+#Calling all the packages we will need for the project
+library(rtweet)
+library(ggplot2)
+library(dplyr)
+library(ggthemes)
+library(readr)
+library(jsonlite)
+library(tidytext)
+library(wordcloud)
+library(wordcloud2)
+library(tidyr)
+library(maps)
+library(textdata)
+library(plotrix)
+library(syuzhet)
+library(reactable)
+library(igraph) 
+library(ggraph)
+library(tibble) 
+library(reshape2)
+library(data.table) 
+library(lubridate) 
+library(wordcloud) 
+
+```
+
+```{r Twitter_Cleaning, include=FALSE}
+
+#To stream in our Tesla JSON data that we have been using for our presentation
+Tesla <- stream_in(file("Tesla.json"))
+#head(Tesla)
+
+#To stream in our Legacy_Automakers JSON data that we have been using for our presentation
+Legacy_Automakers <- stream_in(file("Legacy.json"))
+
+
+# In order to maximize the diversity of opinion within our datasets and limit
+# the impact of non-subjective tweets from users who are frequent posters
+# such as commercial accounts, media sources, bots, spam accounts etc.
+# We will produce datasets comprised of unique users.
+
+Tesla_unique_users <- Tesla[!duplicated(Tesla$user_id),]
+
+Legacy_Automakers_unique_users <- Legacy_Automakers[!duplicated(Legacy_Automakers$user_id),]
+
+
+# We trim the columns of non-relevant/NA data values from our data frames.
+
+Tesla_selected <- subset(Tesla_unique_users, select = c("user_id","status_id", "created_at",  "hashtags",
+                                                        "screen_name", "text", "retweet_count", "location",
+                                                        "is_retweet", "reply_to_status_id", "favorite_count",
+                                                        "retweet_count"))
+
+Legacy_Automakers_selected <- subset(Legacy_Automakers_unique_users, select = c("user_id","status_id", "hashtags",
+                                                                                "created_at", "screen_name", "text",
+                                                                                "retweet_count", "location",
+                                                                                "is_retweet", "reply_to_status_id",
+                                                                                "favorite_count", "retweet_count"))
+
+# Removing elements from text that will hinder our sentiment analysis
+
+Tesla_selected$stripped_text <- gsub("http.*","",  Tesla_selected$text)
+Tesla_selected$stripped_text <- gsub("https.*","", Tesla_selected$stripped_text)
+Tesla_selected$stripped_text <- gsub("amp","", Tesla_selected$stripped_text)
+Tesla_selected$stripped_text <- gsub("@\\*","", Tesla_selected$stripped_text)
+Tesla_selected$stripped_text <- gsub("[0-9]","", Tesla_selected$stripped_text)
+Tesla_selected$stripped_text <- gsub("http:*","", Tesla_selected$stripped_text)
+Tesla_selected$stripped_text <- gsub("https:*","", Tesla_selected$stripped_text)
+
+Legacy_Automakers_selected$stripped_text <- gsub("http.*","",  Legacy_Automakers_selected$text)
+Legacy_Automakers_selected$stripped_text <- gsub("https.*","", Legacy_Automakers_selected$stripped_text)
+Legacy_Automakers_selected$stripped_text <- gsub("amp","", Legacy_Automakers_selected$stripped_text)
+Legacy_Automakers_selected$stripped_text <- gsub("@\\*","", Legacy_Automakers_selected$stripped_text)
+Legacy_Automakers_selected$stripped_text <- gsub("[0-9]","", Legacy_Automakers_selected$stripped_text)
+Legacy_Automakers_selected$stripped_text <- gsub("http:*","", Legacy_Automakers_selected$stripped_text)
+Legacy_Automakers_selected$stripped_text <- gsub("https:*","", Legacy_Automakers_selected$stripped_text)
+
+
+#Show the headings remaining
+head(Tesla_selected$stripped_text)
+head(Legacy_Automakers_selected$stripped_text)
+
+
+```
+
+```{r Hashtags, include=FALSE}
+#Top 15 Hashtags using geom_col
+#based on work by Tiwari, K. K. and Suresha, H.P. (2021)
+#Taking the hashtags from the Tesla search and only filtering by distinct (to avoid duplicates),
+
+data_fix <- Tesla%>%
+  distinct(hashtags, .keep_all = TRUE) %>%
+  select (hashtags)
+
+tesla_unnest <- unnest(data_fix, cols = c(hashtags))
+
+rt_tesla <- tesla_unnest %>% mutate(hashtag_rec =
+                                      recode(hashtags, "tesla" = "Tesla", "ev" = "EV",
+                                             "electricvehicles" = "Electricvehicle",
+                                             "EVs" = "EV", "electricCars" = "Electriccars",
+                                             "electricvehicle" = "Electricvehicle", "electriccars" = "Electriccars",
+                                             "ElectricVehicles" = "Electricvehicle", "ElectricCars" = "Electriccars", "electric" = "Electric",
+                                             "electriccar" = "ElectricCar",
+                                      ))
+
+#counting, ordering and removing blanks.  Ten limiting to the top 15.
+rt_tesla %>%
+  count(hashtag_rec, sort = TRUE) %>%
+  mutate(hashtag_rec = reorder(hashtag_rec,n)) %>%
+  na.omit() %>%
+  head(15)
+
+
+
+#repeating everything we have done for Tesla master search with the legacy master search so we can compare the results.
+data_fix_L <- Legacy_Automakers %>%
+  distinct(hashtags, .keep_all = TRUE) %>%
+  select (hashtags)
+
+LA_unnest <- unnest(data_fix_L, cols = c(hashtags))
+
+rt_LA <- LA_unnest %>% mutate(hashtag_rec =
+                                recode(hashtags,"tesla" = "Tesla", "ev" = "EV",
+                                       "electricvehicles" = "Electricvehicle",
+                                       "EVs" = "EV", "electricCars" = "Electriccars",
+                                       "electricvehicle" = "Electricvehicle", "electriccars" = "Electriccars",
+                                       "ElectricVehicles" = "Electricvehicle", "ElectricCars" = "Electriccars", "electric" = "Electric",
+                                       "electriccar" = "ElectricCar", "ElectricVehicle" = "Electricvehicle"
+                                ))
+rt_LA %>%
+  count(hashtag_rec, sort = TRUE) %>%
+  mutate(hashtag_rec = reorder(hashtag_rec,n)) %>%
+  na.omit() %>%
+  head(15)
+
+```
+
+```{r Retweet_segment, include=FALSE}
+#The retweet donuts are based on work from Van Den Rul, C.(2019)
+
+#We stream in our retweet data samples
+Legacy_with_retweets <- stream_in(file("LegacyRT.json"))
+Tesla_with_retweets <- stream_in(file("TeslaRT.json"))
+
+# Legacy search generated by Adam looking at how many tweets are organic and how many have retweeted and replied.
+
+#This graph is created alongside our Legacy search in order to determine the highest and lowest performing tweeets.  This gives us a quick and clear overall picture of these searches.
+#First we need to separate between organic, retweet and replies.  Organic and the better content and best for analysis.
+
+#Remove retweets
+Legacy_tweets_organic <- Legacy_with_retweets[Legacy_with_retweets$is_retweet==F,]
+
+#Remove replies
+Legacy_tweets_organic <- subset(Legacy_with_retweets, is.na(Legacy_with_retweets$reply_to_status_id))
+
+#Now we just have organic tweets lets look at the tweets with the highest number of likes (using function favorite_count) the minus in front is to arrange in descending order.
+#Favorite Count
+Legacy_tweets_organic <- Legacy_tweets_organic %>% arrange(-favorite_count)
+Legacy_tweets_organic[1,5]
+
+#The number of retweets shows the popularity, again using - to order in descending.
+Legacy_tweets_organic <- Legacy_tweets_organic %>% arrange(-retweet_count)
+Legacy_tweets_organic [1,5]
+
+#Its important for a twitter account to have fresh information so too many retweets shows room for improvement.
+#first need to separate the retweets and the replies.  We already have the organics above.
+
+#Keep only the retweets
+Legacy_retweets <- Legacy_with_retweets[Legacy_with_retweets$is_retweet==T, ]
+
+#Keeping only the replies
+Legacy_replies<-subset(Legacy_with_retweets, !is.na(Legacy_with_retweets$reply_to_status_id))
+
+#add the information gained into a data frame.
+#Creating a data frame
+data_Legacy <- data.frame(
+  category=c("Organic", "Retweets", "Replies"),
+  count=c (24727, 17677, 2576))
+
+
+# Adding columns
+data_Legacy$fraction = data_Legacy$count / sum(data_Legacy$count)
+data_Legacy$percentage = data_Legacy$count / sum(data_Legacy$count) * 100
+data_Legacy$ymax = cumsum(data_Legacy$fraction)
+data_Legacy$ymin = c(0, head(data_Legacy$ymax, n=-1))
+# Rounding the data to two decimal points
+data_Legacy <- data_Legacy %>% mutate_if(is.numeric, round, digits=2)
+# Specify what the legend should say
+Type_of_TweetLA <- paste(data_Legacy$category, data_Legacy$percentage, "%")
+
+
+
+# Tesla search generated by Adam looking at how many tweets are organic and how many have retweeted and replied.
+
+#This graph is created alongside our Legacy car search in order to determin the highest and lowest performing tweeets.  This gives us a quick and clear overall picture of these searches.
+#First we need to seperate between organic, retweet and replies.  Organic and the better content and best for analysis.
+
+#Remove retweets
+Tesla_tweets_organic <- Tesla_with_retweets[Tesla_with_retweets$is_retweet==F,]
+
+#Remove replies
+Tesla_tweets_organic <- subset(Tesla_with_retweets, is.na(Tesla_with_retweets$reply_to_status_id))
+
+#Now we just have organic tweets lets look at the tweets with the highest number of likes (using function favorite_count) the minus in front is to arrange in descending order.
+#Favorite Count
+Tesla_tweets_organic <- Tesla_tweets_organic %>% arrange(-favorite_count)
+Tesla_tweets_organic[1,5]
+
+#The number of retweets shows the popluarity, again using - to order in descending.
+Tesla_tweets_organic <- Tesla_tweets_organic %>% arrange(-retweet_count)
+Tesla_tweets_organic [1,5]
+
+#Its important for a twitter account to have fresh information so too many retweets shows room for improvement.
+#first need to seperate the retweets and the replies.  We already have the orgnics above.
+
+#Keep only the retweets
+Telsa_retweets <- Tesla_with_retweets[Tesla_with_retweets$is_retweet==T, ]
+
+#Keeping only the replies
+Tesla_replies<-subset(Tesla_with_retweets, !is.na(Tesla_with_retweets$reply_to_status_id))
+
+#add the information gained into a data frame.
+#Creating a data frame
+data_Tesla <- data.frame(
+  category=c("Organic", "Retweets", "Replies"),
+  count=c (27476, 15419, 5851))
+
+
+
+# Adding columns
+data_Tesla$fraction = data_Tesla$count / sum(data_Tesla$count)
+data_Tesla$percentage = data_Tesla$count / sum(data_Tesla$count) * 100
+data_Tesla$ymax = cumsum(data_Tesla$fraction)
+data_Tesla$ymin = c(0, head(data_Tesla$ymax, n=-1))
+# Rounding the data to two decimal points
+data_Tesla <- data_Tesla %>% mutate_if(is.numeric, round, digits=2)
+# Specify what the legend should say
+Type_of_TweetT <- paste(data_Tesla$category, data_Tesla$percentage, "%")
+
+```
+
+```{r Twitter_seperating_words, include=FALSE}
+
+#This chunk is not for the retweet data samples as this would not be required for our resulsts.
+# This is purely for our samples concerning sentiment
+
+#Separating every word for sentiment analysis
+Tesla_Sentiment <- Tesla_selected %>%
+  select(stripped_text, created_at) %>% 
+  mutate(tweetnumber = row_number()) %>% # create new variable denoting the tweet number
+  unnest_tokens(word, stripped_text)
+head(Tesla_Sentiment)
+
+Legacy_Sentiment <- Legacy_Automakers_selected %>%
+  select(stripped_text, created_at) %>% 
+  mutate(tweetnumber = row_number()) %>% # create new variable denoting the tweet number
+  unnest_tokens(word, stripped_text)
+head(Legacy_Sentiment)
+
+
+# Removing Stopwords using the lexicon
+Tesla_stopwords <- Tesla_Sentiment %>%
+  anti_join(stop_words) # return all rows where there are not matching values in stop_words
+
+Legacy_stopwords <- Legacy_Sentiment %>%
+  anti_join(stop_words) # return all rows where there are not matching values in stop_words
+
+# Define our own stopwords that we don't want to include. We have decided to only remove unprofessional words from our findings
+Tesla_my_stopwords <- data.frame(word = c("shit", "Fuck", "Fucking", "fuck", "fucking", "Shit"))
+Legacy_my_stopwords <- data.frame(word = c("shit", "Fuck", "Fucking", "fuck", "fucking", "Shit"))
+
+# remove our own stopwords from the list of words too
+Tesla2 <- Tesla_stopwords %>%
+  anti_join(Tesla_my_stopwords) 
+
+Legacy2 <- Legacy_stopwords %>%
+  anti_join(Legacy_my_stopwords)
+
+
+```
+
+```{r, Timesetup, include=FALSE}
+
+
+
+combo = bind_rows(Tesla_unique_users, Legacy_Automakers_unique_users)
+Tesla_unique_users$car_type <- 'Tesla'
+Legacy_Automakers_unique_users$car_type <- 'Legacy'
+
+# Adding new collumns to keep our samples seperated
+Tesla$car_type <- 'Tesla'
+Legacy_Automakers$car_type <- 'Legacy'
+
+# Binding both data sets into one dataframe
+combo = bind_rows(Tesla ,Legacy_Automakers)
+
+head(Tesla$car_type)
+
+
+# Resetting date collumn to date format
+Tesla[['created_at']] <- as.POSIXct(Tesla[['created_at']],  format = "%Y-%m-%d %H:%M:%S")
+Legacy_Automakers[['created_at']] <- as.POSIXct(Legacy_Automakers[['created_at']],  format = "%Y-%m-%d %H:%M:%S")
+combo[['created_at']] <- as.POSIXct(combo[['created_at']],  format = "%Y-%m-%d %H:%M:%S")
+
+# set general theme for graphs
+ggplottheme <- theme(plot.title = element_text(family = "Helvetica", face = "bold", size = (15), hjust = 0.5), 
+                     legend.title = element_text(colour = "steelblue",  face = "bold.italic", 
+                                                 family = "Helvetica"), 
+                     legend.text = element_text(face = "italic", colour="steelblue4",family = "Helvetica"), 
+                     axis.title = element_text(family = "Helvetica", size = (10), colour = "steelblue", face =
+                                                 "bold"),
+                     axis.text = element_text(family = "Courier", colour = "black", size = (10)))
+
+```
+
+```{r BING, include=FALSE}
+
+# Using the Bing sentiment lexicon to seperate Tesla words from sentences and reorder them into quantities
+# This has been done to egenrate the wordclouds and sentiment popularity graphs in slide ___ and slide ___
+bing_word_counts_Tesla_words <- Tesla2 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  mutate(word = reorder(word, n)) 
+
+# Using the Bing sentiment lexicon to seperate Tesla words from sentences and reorder them into quantities
+# This has been done to egenrate the wordclouds and sentiment popularity graphs in slide ___ and slide ___
+bing_word_counts_Legacy_words <- Legacy2 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  mutate(word = reorder(word, n)) 
+
+
+
+
+# This is for our time graphs, very similar to the above; however "created_at" has been created for the visualisations
+bing_word_counts_Tesla <- Tesla2 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE, created_at) %>%
+  mutate(word = reorder(word, n)) 
+
+bing_word_counts_Legacy <- Legacy2 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE, created_at) %>%
+  mutate(word = reorder(word, n)) 
+
+#simplifies the date by removing hours,minutes and seconds for the polarity graph 
+bing_word_counts_Legacy[['created_at']] <- as.POSIXct(bing_word_counts_Legacy[['created_at']],  format = "%Y-%m-%d")
+bing_word_counts_Tesla[['created_at']] <- as.POSIXct(bing_word_counts_Tesla[['created_at']],  format = "%Y-%m-%d")
+
+# Creates Table of polarity of Tesla 
+Tesla_polarity <- bing_word_counts_Tesla  %>%
+  count(sentiment, created_at)  %>%
+  spread(sentiment, n, fill = 0)  %>%
+  mutate(polarity = positive - negative, postive_percentage = positive / (positive + negative) * 100)
+
+# Creates Table of polarity of legacy automakers  
+Legacy_polarity <- bing_word_counts_Legacy  %>%
+  count(sentiment, created_at)  %>%
+  spread(sentiment, n, fill = 0)  %>%
+  mutate(polarity = positive - negative, postive_percentage = positive / (positive + negative) * 100)
+
+
+# Check to see if the following is correct: "n" collumn is in descending order and that a sentiment has been given to a word.
+
+head(bing_word_counts_Legacy)
+head(bing_word_counts_Tesla)
+
+
+```
+
+```{r SCORING, include=FALSE}
+## This scoring method was inspired by two sources
+## Colin Priest (2017) and Dhaval Thakur (2020)
+
+
+##Firstly, selecting the collumns we wish to keep for the scoring table for both samples
+
+Tesla_only_clean_text <- subset(Tesla_selected, select = c ("user_id","status_id", "created_at",  "hashtags",
+                                                        "screen_name", "stripped_text", "retweet_count",
+                                                        "location",
+                                                        "is_retweet", "reply_to_status_id", "favorite_count",
+                                                        "retweet_count"))
+
+
+Legacy_Automakers_only_clean_text <- subset(Legacy_Automakers_selected, select = c ("user_id","status_id",
+                                                                                    "created_at", "hashtags",
+                                                                               "screen_name", "stripped_text",
+                                                                               "retweet_count", "location",
+                                                                               "is_retweet", "reply_to_status_id",
+                                                                               "favorite_count", "retweet_count"))
+
+
+
+###Getting an in-depth look of sentiment breakdown. 
+#First, turn the text into a vector so that each word can be scored
+Tesla_emotions <- as.vector(Tesla_only_clean_text$stripped_text)
+
+Legacy_emotions <- as.vector(Legacy_Automakers_only_clean_text$stripped_text)
+
+
+#Getting sentiments using nrc from the Syuzhet package function 
+feelings_data_Tesla <- get_nrc_sentiment(Tesla_emotions)
+
+
+feelings_data_Legacy <- get_nrc_sentiment(Legacy_emotions)
+
+#Now we bind the results together in order to make a useful dataframe
+feelings_scored <- cbind(Tesla_only_clean_text, feelings_data_Tesla)
+feelings_scored
+
+feelings_scored2 <- cbind(Legacy_Automakers_only_clean_text, feelings_data_Legacy)
+feelings_scored2
+
+#Adding our Negative NRC emotions together for each user
+feelings_scored$Negative_score <- (feelings_scored$anger + feelings_scored$disgust + feelings_scored$fear + feelings_scored$sadness + feelings_scored$negative)
+
+feelings_scored2$Negative_score <- (feelings_scored2$anger + feelings_scored2$disgust + feelings_scored2$fear + feelings_scored2$sadness + feelings_scored2$negative)
+
+# Adding our positive NRC emotions together for each user
+feelings_scored$Positive_score <- (feelings_scored$anticipation + feelings_scored$joy + feelings_scored$surprise + feelings_scored$trust + feelings_scored$positive)
+
+feelings_scored2$Positive_score <- (feelings_scored2$anticipation + feelings_scored2$joy + feelings_scored2$surprise + feelings_scored2$trust + feelings_scored2$positive)
+
+
+#We add the positve and negative scores together to reveal an overall sentiment score for each user
+feelings_scored$Overall_score <- (feelings_scored$Positive_score - feelings_scored$Negative_score)
+feelings_scored2$Overall_score <- (feelings_scored2$Positive_score - feelings_scored2$Negative_score)
+
+# Looking at the maximum, Minimum and average for our two samples
+max(feelings_scored$Overall_score)
+min(feelings_scored$Overall_score)
+mean(feelings_scored$Overall_score)
+
+max(feelings_scored2$Overall_score)
+min(feelings_scored2$Overall_score)
+mean(feelings_scored2$Overall_score)
+
+# We add names next to each row in order to to keep the sample separate in the same dataframe
+feelings_scored$Sample <- 'Tesla'
+feelings_scored2$Sample <- 'Legacy'
+
+
+# Binding the two samples into one dataframe
+Double_sample_feelings <- rbind(feelings_scored, feelings_scored2)
+Double_sample_feelings
+
+
+# Box & Whisker Plot
+# T-Test upon contrasting datasets for sentiment analysis
+
+# Starting data frames from rest of project code:
+# feelings_scored (Tesla), feelings_scored2 (Legacy Automakers)
+# Double_sample_feelings (combined)
+
+
+# Selecting relevant columns for analysis
+sentiment = dplyr::select(Double_sample_feelings, user_id, status_id, Sample, Overall_score)
+Tesla_sentiment = dplyr::select(feelings_scored, user_id, status_id, Sample, Overall_score)
+Legacy_Automakers_sentiment = dplyr::select(feelings_scored2, user_id, status_id, Sample, Overall_score)
+
+# Box & Whisker plot showing distribution of data for each group from combined dataset
+
+
+# Running the t-test function on our large dataset yields an extremely small P-value
+
+t.test(Overall_score ~ Sample, data = sentiment, alternative= "two.sided", var.equal = FALSE)
+
+# Isolating 
+
+t.test(Overall_score ~ Sample, data = sentiment, alternative= "two.sided", var.equal = FALSE)$p.value
+
+# If we pull a random sample from our combined dataset, and run a t-test,
+# The result is a p-value that is larger, and more in line with what appears
+# to be the case observing how similar the data is between each group
+
+sample_sentiment <- sentiment[sample(nrow(sentiment), size=1000),]
+
+t.test(Overall_score ~ Sample, data = sample_sentiment, var.equal = FALSE)
+
+
+
+```
+
+```{r Bigraphs, include=FALSE}
+
+#it is good analysis to look at the connection between certain words to gain deeper understanding and this can be done with the use of Bigrams.
+#Using Unnest_tokens we separte the words, then ngrams which allows us to see how ofter one word follows another.  Then finally we set number to 2 to see pairs or so called 'Bigrams'.  (Sildge, J., Dobbins, T. J, et al, 2021)
+Tesla_bigrams <- Tesla %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2)
+
+#Examine the most common words using Dplyr's count funtion.
+Tesla_bigrams %>%
+  count(bigram, sort = T)
+
+#The above produces a lot of common words such as 'the' and 'and' so seperating the 2 words we have collected we can now apply 'Stop Words'.
+bigrams_separated_T <- Tesla_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+#applying stop words.
+bigrams_filtered_T <- bigrams_separated_T %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+# new bigram counts:
+bigram_counts_T <- bigrams_filtered_T %>%
+  count(word1, word2, sort = TRUE)
+
+#uniting words now we have removed stop_words
+bigrams_united_T <- bigrams_filtered_T %>%
+  unite(bigram, word1, word2, sep = " ")
+
+
+#creating a graph of connecting nodes and relationships based on our bigram_counts we made earlier.
+#This shows the connection amongst words all at once.  The library igraph enables us to do this.
+#filtering is used to show only common combinations.
+bigram_graph_T <-bigram_counts_T %>%
+  filter(n > 50) %>%
+  graph_from_data_frame()
+
+
+#changing igraph to ggraph now and using the package (Pedersen 2017) with ggraph to add layers to our graph for visualisation.  The same way you would for ggplot.
+
+set.seed(2017)
+
+
+#The below process is exactly the same as above.  This time we use the Legacy search to comapre to the Tesla.
+LA_bigrams <- Legacy_Automakers %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2)
+LA_bigrams
+
+LA_bigrams %>%
+  count(bigram, sort = T)
+
+bigrams_separated_LA <- LA_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+bigrams_filtered_LA <- bigrams_separated_LA %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+bigram_counts_LA <- bigrams_filtered_LA %>%
+  count(word1, word2, sort = TRUE)
+
+bigram_counts_LA
+
+bigrams_united_LA <- bigrams_filtered_LA %>%
+  unite(bigram, word1, word2, sep = " ")
+
+bigram_graph_LA <-bigram_counts_LA %>%
+  filter(n > 70) %>%
+  graph_from_data_frame()
+
+
+bigram_graph_LA
+set.seed(2017)
+
+```
+
+## Key Objectives
+
+```{=tex}
+\begin{itemize}
+\item To undertake a sentiment and statistical analysis around electric vehicles and their providers
+\item To demonstrate our findings using data visualisation techniques
+\item To provide recommendations to Tesla and competitors based on the information found through Twitter analysis
+\item To determine whether the use of a T-test is appropriate
+\end{itemize}
+```
+## Retweet Charts
+
+::: columns
+::: column
+
+Legacy type of tweets
+
+```{r Retweet_chart, message=FALSE ,echo=FALSE}
+
+ggplot(data_Legacy, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Type_of_TweetLA)) +
+  geom_rect() +
+  labs(caption = "Source: Data collected from Twitter's REST API via rtweet") +
+    coord_polar(theta="y") +
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right",
+        text = element_text(size = 14, color = "black"),
+        legend.title = element_text(size = 16, color = "black"),
+        title = element_text(size = 20))
+
+
+```
+:::
+
+::: column
+
+Tesla type of tweets
+
+```{r Retweet_chart_Tesla, message=FALSE ,echo=FALSE}
+
+ggplot(data_Tesla, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Type_of_TweetT)) +
+  geom_rect() +
+  labs(caption = "Source: Data collected from Twitter's REST API via rtweet") +
+  coord_polar(theta="y") +
+  xlim(c(2, 4)) +
+  theme_void() +
+  theme(legend.position = "right",
+        text = element_text(size = 14, color = "black"),
+        legend.title = element_text(size = 16, color = "black"),
+        title = element_text(size = 20))
+```
+:::
+:::
+
+## Popular hashtags for Electric Vehicles (EV)
+
+::: columns
+::: column
+
+Popular Hashtags for Legacy
+
+```{r Hashtags_Legacy, message=FALSE ,echo=FALSE}
+
+
+# plot top locations again
+rt_LA %>%
+  count(hashtag_rec, sort = TRUE) %>%
+  mutate(hashtag_rec = reorder(hashtag_rec,n)) %>%
+  na.omit() %>%
+  head(15) %>% #limit to top 15
+  ggplot(aes(x = hashtag_rec,y = n, fill = n)) +
+  geom_col(fill = "navy") +
+  coord_flip() +
+  labs(x = "Top Hashtags",
+       y = "Frequency",
+       caption = "Source: Data collected from Twitter's REST API via rtweet") +
+  theme(legend.position = "none", axis.text = element_text(size = 14, color = "black"),
+        axis.title = element_text(size = 14, color = "black"),
+        title = element_text(size = 20))
+
+```
+:::
+
+::: column
+
+Popular Hashtags for Tesla
+
+```{r Hashtags_Tesla, message=FALSE ,echo=FALSE}
+
+# Histogram for Hashtags
+rt_tesla %>%
+  count(hashtag_rec, sort = TRUE) %>% # count the frequency for each hashtags
+  mutate(hashtag_rec = reorder(hashtag_rec,n)) %>% # make sure that hashtags are ordered according to frequency
+  na.omit() %>%
+  head(15) %>% #limit to top 15
+  ggplot(aes(x = hashtag_rec,y = n, fill = n)) +
+  geom_col(fill = "purple") +
+  coord_flip() + # flip x and y axes so we can read Top Hashtags
+  labs(x = "Top Hashtags",
+       y = "Frequency",
+       caption = "Source: Data collected from Twitter's REST API via rtweet") +
+  theme(legend.position = "none", axis.text = element_text(size = 14, color = "black"),
+        axis.title = element_text(size = 14, color = "black"),
+        title = element_text(size = 20))
+
+```
+:::
+:::
+
+## Most common Positive and Negative words for Legacy (Bing)
+
+::: columns
+::: column
+
+
+
+```{r Bing_LegacyBar, fig.height=8, fig.width=7, message=FALSE ,echo=FALSE}
+bing_word_counts_Legacy_words %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(y = "Sentiment",
+       x = NULL) +
+  theme(axis.text = element_text(size = 14, color = "black"), 
+        axis.title = element_text(size = 14, color = "black"),
+        title = element_text(size = 20))
+```
+:::
+
+::: column
+```{r Wordcloud1, message=FALSE ,echo=FALSE}
+Legacy2%>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("red", "turquoise"),
+                   max.words = 100) 
+
+
+```
+:::
+:::
+
+## Most common Positive and Negative words for Tesla (Bing)
+
+::: columns
+::: column
+
+
+
+```{r Bing_Tesla, fig.height=8, fig.width=7, message=FALSE ,echo=FALSE}
+
+bing_word_counts_Tesla_words %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(y = "Sentiment",
+       x = NULL) +
+  theme(axis.text = element_text(size = 14, color = "black"), 
+        axis.title = element_text(size = 14, color = "black"),
+        title = element_text(size = 20))
+```
+:::
+
+::: column
+```{r Wordcloud_Tesla, message=FALSE ,echo=FALSE}
+
+Tesla2%>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("red", "turquoise"),
+                   max.words = 100) 
+
+```
+:::
+:::
+
+## Frequency of tweets by days of the week
+
+::: columns
+::: column
+
+\begin{center}
+Tesla
+\end{center}
+
+```{r, echo=FALSE, message=FALSE, fig.show='hold', fig.height=2, fig.width=3}
+#Generates graph of tweets per day of the week
+Tesla %>% 
+  mutate(days = wday(created_at, label = TRUE)) %>%
+  ggplot(aes(x = days)) +
+  geom_bar(fill = "purple") +
+  labs(y="Number of Tweets") +
+theme(legend.position = "none", axis.text = element_text(size = 10, color = "black"),
+      axis.title = element_text(size = 10, color = "black"),
+      title = element_text(size = 20)) 
+
+
+```
+:::
+
+::: column
+
+\begin{center}
+Legacy
+\end{center}
+
+```{r, echo=FALSE, message=FALSE, fig.show='hold', fig.height=2, fig.width=3}
+
+#Generates graph of tweets per day of the week
+Legacy_Automakers %>% 
+  mutate(days = wday(created_at, label = TRUE)) %>%
+  ggplot(aes(x = days)) +
+  geom_bar(fill = "navy") +
+  labs(y="Number of Tweets") +
+theme(legend.position = "none", axis.text = element_text(size = 10, color = "black"),
+      axis.title = element_text(size = 10, color = "black"),
+      title = element_text(size = 20))
+
+
+
+```
+:::
+:::
+
+## Tweets per hour for Tesla and Legacy samples
+
+```{r, echo=FALSE, fig.show='hold', fig.height=4, fig.width=8}
+
+
+#Creates graph of number of Tweets per hour via car_type
+compare <- ggplot(data = combo,aes(x = created_at, group = car_type, colour = car_type, fill = car_type)) + 
+  geom_freqpoly(binwidth = 3600) 
+
+#Adds theme and titles to graph
+compare <- compare+ ggplottheme +
+  labs(y="Number of Tweets Per Hour", x = "Dates") +
+  theme(legend.position = "right", 
+        legend.title = element_text(size = 12, color = "black"),
+        axis.text = element_text(size = 12, color = "black"),
+        axis.title = element_text(size = 12, color = "black"),
+        title = element_text(size = 25),
+    )
+
+compare
+#Bar Version of graph
+#compare + geom_bar(data = combo, stat = "bin")
+
+
+
+
+```
+
+## Bing sentiment time graph for Legacy sample
+
+Polarity Over Time
+
+```{r, echo=FALSE, fig.show='hold', message=FALSE, fig.height=4, fig.width=8}
+#Colours for lines 
+colors <- c("Average" = "blue", "Trajectory" = "#0d9900")
+
+#Creates Graph of the polarity (positive - negative) overtime 
+Legacy_polarity_graph <- Legacy_polarity  %>%
+  ggplot(aes(created_at, polarity)) + #plots polarity over each day from Lagacy Dataset
+  geom_col() +
+  geom_smooth(method = "loess", se = FALSE, aes(colour = "Average"),show.legend=TRUE) + #Average Line
+  geom_smooth(method = "lm", se = FALSE, aes(color = 'Trajectory')) + #Trajectory Line
+  ggplottheme + # Adds Theme to graph 
+    labs(x = "Dates", # Adds Labels and Legacy to graph 
+         y = "Polarity",
+         color = "Legend") +
+    scale_color_manual(values = colors)
+
+Legacy_polarity_graph #Shows Graph
+```
+
+## Bing sentiment time graph for Tesla sample
+
+Polarity Over Time
+
+```{r, echo=FALSE, message=FALSE, fig.height=4, fig.width=8}
+#Colours for lines 
+colors <- c("Average" = "blue", "Trajectory" = "#0d9900")
+
+#Creates Graph of the polarity (positive - negative) overtime 
+Tesla_polarity_graph <- Tesla_polarity  %>%
+  ggplot(aes(created_at, polarity)) + #plots polarity over each day from Tesla Dataset
+  geom_col() +
+  geom_smooth(method = "loess", se = FALSE, aes(colour = "Average"),show.legend=TRUE) + #Average Line
+  geom_smooth(method = "lm", se = FALSE, aes(color = 'Trajectory')) + #Trajectory Line
+  ggplottheme + # Adds Theme to graph 
+    labs(x = "Dates", # Adds Labels and Legacy to graph 
+         y = "Polarity",
+         color = "Legend") +
+    scale_color_manual(values = colors)
+
+Tesla_polarity_graph #Shows Graph
+
+```
+
+
+
+
+## Ngrams for the Legacy Automakers
+
+```{r, echo=FALSE, fig.show='hold', fig.height=8, fig.width=12}
+
+ggraph(bigram_graph_LA, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point(color = "navy", size = 2) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  labs(caption = "Source: Data collected from Twitter's REST API via rtweet")
+```
+
+## Ngrams for Tesla
+```{r, echo=FALSE, fig.show='hold', fig.height=8, fig.width=12}
+
+ggraph(bigram_graph_T, layout = "fr") +
+  geom_edge_link() +
+  geom_node_point(color = "purple", size = 2) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  labs(caption = "Source: Data collected from Twitter's REST API via rtweet")
+```
+
+## Is a T-test appropriate?
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height=4, fig.width=8}
+# Box & Whisker plot showing distribution of data for each group from combined dataset
+
+ggplot(sentiment, aes(x = Sample, y = Overall_score, fill = Sample)) +
+  geom_boxplot(varwidth = FALSE, show.legend = F) +
+  labs(x = "Contrasting Datasets", y = "Sentiment Score by Tweet") +  
+  stat_summary(fun = "mean", show.legend = F, geom = "point", shape = 16, size = 2, color = "grey") + scale_fill_manual(values = c('navyblue', 'purple'))
+```
+
+## Distribution of sentiment scores for Legacy and Tesla
+
+Legacy Sample
+
+::: columns
+::: column
+
+```{r, echo=FALSE, fig.show='hold', fig.height=6, fig.width=8}
+# Box & Whisker plot showing distribution of data for each group from combined dataset
+
+ggplot(Legacy_Automakers_sentiment, aes(x=Overall_score)) + geom_histogram(binwidth=.5) +
+  labs(x = "Sentiment Score", y = "Number of Tweets")+
+  geom_vline(aes(xintercept=mean(Overall_score)),
+             color="navyblue", linetype="dashed", size=1)
+```
+:::
+
+::: column
+
+Tesla Sample
+
+```{r, echo=FALSE, fig.show='hold', fig.height=6, fig.width=8}
+ggplot(Tesla_sentiment, aes(x=Overall_score)) + geom_histogram(binwidth=.5) +
+  labs(x = "Sentiment Score", y = "Number of Tweets")+
+  geom_vline(aes(xintercept=mean(Overall_score)),
+             color="navyblue", linetype="dashed", size=1)
+
+
+```
+
+:::
+:::
+
+## Conclusion
+
+- EVs are positively accepted by users disregarding company influence
+- Weekdays seem to be a more popular time for EV conversation
+- Twitter users appear to enjoy classic looking and affordable EVs as a style
+- Brands like Tesla have their own name hash tagged to generate more publicicty
+- Charging stations are of interest for users
+
+
+## References
+\tiny {Van Den Rul, C.(2019) *A Guide to Mining and Analysing Tweets with R: Steps towards writing an insightful Twitter analytics report*, available at: https://towardsdatascience.com/a-guide-to-mining-and-analysing-tweets-with-r-2f56818fdd16,  (Accessed:19 November 2021)}
+
+\tiny {Suresha, H.P. and Tiwari, K.K (2021) *'Asian Modeling and Sentiment Analysis of Electric Vehicles of Twitter Data'*12(2):13-29, 2021: Article no.  AJRCOS.74815.  doi: 10.9734/AJRCOS/2021/v12i230278 }
+
+\tiny {Silge, J., Dobbins, T.J., szcf-weiya, Beveridge, M., Lendrum, J., Robinson, D., Yilmas, A., Agin, B.(2021) *Text Miining with R: A tidy Approach, Relationships between words: n-grams and correlations.*, available at: https://www.tidytextmining.com/ngrams.html, (Accessed: 16 November 2021)}
+
+\tiny {Stackoverflow (2018) *How to highlight negative and positive words in a wordcloud using R.*, availbale at: https://stackoverflow.com/questions/52163964/how-to-highlight-negative-and-positive-words-in-a-wordcloud-using-r, (Accessed: 22 November 2021)}
+
+\tiny {Kearney, M. W. (2019). rtweet: Collecting and analyzing Twitter data, Journal of Open Source Software, 4, 42. 1829. doi:10.21105/joss.01829 (R package version 0.7.0)}
+
+\tiny {H. Wickham. ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York, 2016.}
+
+\tiny {Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2021). dplyr: A Grammar of Data Manipulation. R package version 1.0.7. https://CRAN.R-project.org/package=dplyr}
+
+\tiny {Jeffrey B. Arnold (2021). ggthemes: Extra Themes, Scales and Geoms for 'ggplot2'. R package version 4.2.4. https://CRAN.R-project.org/package=ggthemes}
+  
+\tiny {Hadley Wickham and Jim Hester (2021). readr: Read Rectangular Text Data. R package version 2.1.0. https://CRAN.R-project.org/package=readr}
+  
+\tiny {Jeroen Ooms (2014). The jsonlite Package: A Practical and Consistent Mapping Between JSON Data and R Objects. arXiv:1403.2805 [stat.CO] URL https://arxiv.org/abs/1403.2805.}
+  
+## References
+  
+\tiny {Silge J, Robinson D (2016). “tidytext: Text Mining and Analysis Using Tidy Data Principles in R.” _JOSS_,
+*1*(3). doi: 10.21105/joss.00037 (URL: https://doi.org/10.21105/joss.00037), <URL: http://dx.doi.org/10.21105/joss.00037>.}
+
+\tiny {Ian Fellows (2018). wordcloud: Word Clouds. R package version 2.6. https://CRAN.R-project.org/package=wordcloud}
+  
+\tiny {Dawei Lang and Guan-tin Chien (2018). wordcloud2: Create Word Cloud by 'htmlwidget'. R package version 0.2.1. https://CRAN.R-project.org/package=wordcloud2}
+  
+\tiny {Hadley Wickham (2021). tidyr: Tidy Messy Data. R package version 1.1.4. https://CRAN.R-project.org/package=tidyr}
+  
+\tiny {Original S code by Richard A. Becker, Allan R. Wilks. R version by Ray Brownrigg. Enhancements by Thomas P Minka and Alex Deckmyn. (2021). maps: Draw Geographical Maps. R package version 3.4.0. https://CRAN.R-project.org/package=maps}
+
+\tiny {Thakur, Dhaval (2020) *Sentiment Analysis of any Twitter Profile using R*, Available at:
+https://blog.devgenius.io/sentiment-analysis-of-any-twitter-profile-using-r-90f0af5bc8}
+
+\tiny {Priest, Colin (2017), *Tutorial: Sentiment Analysis of Airlines Using the syuzhet Package and Twitter*, Available at: https://colinpriest.com/2017/04/30/tutorial-sentiment-analysis-of-airlines-using-the-syuzhet-package-and-twitter/}
+  
+\tiny {Emil Hvitfeldt (2020). textdata: Download and Load Various Text Datasets. R package version 0.4.1. https://CRAN.R-project.org/package=textdata}
+
+\tiny {Lemon, J. (2006) Plotrix: a package in the red light district of R. R-News, 6(4): 8-12.}
+  
+\tiny {Jockers ML (2015). _Syuzhet: Extract Sentiment and Plot Arcs from Text_. <URL: https://github.com/mjockers/syuzhet>.}
+
+\tiny {Greg Lin (2020). reactable: Interactive Data Tables Based on 'React Table'. R package version 0.2.3. https://CRAN.R-project.org/package=reactable}
+  
+\tiny {Csardi G, Nepusz T: The igraph software package for complex network research, InterJournal, Complex Systems 1695. 2006. https://igraph.org}
+
+## References
+  
+\tiny {Thomas Lin Pedersen (2021). ggraph: An Implementation of Grammar of Graphics for Graphs and Networks. R package version 2.0.5. https://CRAN.R-project.org/package=ggraph}
+  
+\tiny { Kirill Müller and Hadley Wickham (2021). tibble: Simple Data Frames. R package version 3.1.6. https://CRAN.R-project.org/package=tibble}
+  
+\tiny {Hadley Wickham (2007). Reshaping Data with the reshape Package. Journal of Statistical Software, 21(12), 1-20. URL http://www.jstatsoft.org/v21/i12/.}
+
+\tiny {Matt Dowle and Arun Srinivasan (2021). data.table: Extension of 'data.frame'. R package version 1.14.2. https://CRAN.R-project.org/package=data.table}
+  
+\tiny { Garrett Grolemund, Hadley Wickham (2011). Dates and Times Made Easy with lubridate. Journal of Statistical Software, 40(3), 1-25. URL https://www.jstatsoft.org/v40/i03/.}
+
+\tiny {Ian Fellows (2018). wordcloud: Word Clouds. R package version 2.6. https://CRAN.R-project.org/package=wordcloud}
+

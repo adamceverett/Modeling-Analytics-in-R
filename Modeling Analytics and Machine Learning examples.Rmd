@@ -1,0 +1,958 @@
+---
+title: "MATH501 Modelling and Analytics for Data Science"
+author: "10555259, 10745120, 10736072, 10612662"
+date: "23/05/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(ISLR)
+library(class)
+library(MASS)
+library(ROCR)
+library(dplyr)
+library(randomForest)
+library(tree)
+library(ggplot2)
+library(readr)
+library(multcomp)
+library(ggmcmc)
+library(R2jags)
+
+#  Read in Machine learning file
+diabetes <- read.delim('diabetes_data.txt', sep = " ", header=TRUE)
+attach(diabetes)
+
+
+meanAge <- aggregate(diabetes$Age,
+                        list(diabetes$Diabetes),
+                        mean)
+
+meanBMI <- aggregate(diabetes$BMI,
+                     list(diabetes$Diabetes),
+                     mean)
+
+# Read in Bayesian file
+corn_crake<-read_csv("corn_crake.csv")
+
+
+
+# Separates head value (classifier)
+Diabetes_head <- as.factor(diabetes$Diabetes)
+table(Diabetes_head)
+diabetes$Diabetes <- Diabetes_head
+diabetes$PhysActive <- as.factor(diabetes$PhysActive)
+
+
+
+#change to a factor to use "none" first
+corn_crake$Supplement_f <- factor(corn_crake$Supplement, levels = c("None", "Sizefast", "Linseed", "Earlybird", "Allvit"), labels = c("None", "Sizefast", "Linseed", "Earlybird", "Allvit"), ordered = FALSE)
+
+
+
+```
+
+# Machine learning part (a)
+
+## Boxplot
+
+```{r boxplot, warning=FALSE, message=FALSE, out.width="80%", fig.align='center'}
+par(mfrow = c(1,2))   # divide the graphics window into 2 columns
+
+# Boxplot for the ages of diabetics and non-diabetics
+boxplot(Age ~ Diabetes, xlab = "Diabetes", ylab = "Age",
+        col = c("lightblue", "orange"))
+# Boxplot for the ages of diabetics and non-diabetics
+boxplot(BMI ~ Diabetes, xlab = "Diabetes", ylab = "BMI",
+        col = c("lightblue", "orange"))
+
+```
+
+## Scatterplot
+
+```{r scatterplot, warning=FALSE, message=FALSE, out.width="80%", fig.align='center'}
+def.col <- rep('blue', 1000)        # Use blue by default
+def.col[Diabetes == 'Yes'] <- 'red'     # Use red for diabetics
+
+# Plotting all rows onto the graph
+par(mfrow = c(1,1))
+plot(Age, BMI, col = def.col, xlab = 'Age', 
+     ylab = 'BMI', pch = 1)
+legend(x = 'topright', legend = c('Not Diabetic', 'Diabetic'), col = c('blue','red'), pch = 15)
+```
+
+### Comment on the graphs
+
+__Summary of graphs__
+
+__Boxplots__
+
+From the box plot (Left), it can be understood that Age appears to be a more influential factor compared to the BMI box plot (Right) in whether a person has diabetes. The age box plot (Left) shows that 75% of diabetics are between 50 and 75 years old and non-diabetics are between 25 and 55 years old. The median of diabetics and non-diabetics shows a 20 year difference. 
+
+The BMI box plot (Right) illustrates that diabetics and non-diabetics have similar BMI scores with 75% of the diabetic sample scoring 25 and 35 and 75% of the non-diabetic sample scoring between 25 and 30. The BMI similarities between both classes is further supported by the median of diabetics being a score of 30 and non-diabetics being a score of 25.
+
+__Scatterplot__
+
+The scatterplot illustrates that many diabetics and non-diabetics share similar characteristics in regards to age and BMI. The scatterplot demonstrates that accurately predicting diabetes using LDA and Random Forest (Bagging) will be challenging, as age and BMI do not appear to clearly seperate the two classes.  
+
+__Conclusion__
+
+The sample of diabetics to non-diabetics is uneven, with a small representation of diabetics in comparison to non-diabetics. Uneven proportions of the classes may not accurately represent each class fairly and hinder the accuracy of predicting diabetes using age and BMI.    
+
+
+
+## Machine Learning Part (b)
+
+### Splitting our sample
+
+The sample of 1000 people has been randomly split using a ratio of 75% to 25%. 
+
+- Training data = __750 people__
+- Test data = __250 people__
+
+```{r sample split, warning=FALSE, message=FALSE}
+set.seed(1) #Used to keep the same sample choices between sessions
+
+# Splitting our dataset respectively
+test.subset <- sample(1000, 250)     
+diabetes.train <- diabetes[-test.subset, ]
+diabetes.test <- diabetes[test.subset, ]
+```
+
+## Machine Learning Part (c)
+
+### Perform LDA with Age and BMI
+
+The code used to perform LDA on our training data:
+__lda(y ~ x1 + x2 +....+xp, data, subset)__
+
+- __y__ is the variable containing __class labels__ (Diabetes)
+- __x1, x2,...,xp__ are __predictors__ (Age and BMI)
+- __data__ is the __data set__ in which these variables are kept (Training and test data)
+
+```{r LDA}
+lda.train <- lda(Diabetes ~ Age + BMI, data = diabetes.train)
+```
+
+## Training error and the test error
+
+```{r Train and test code setup, warning=FALSE, message=FALSE}
+# Using the predict function on our training data.
+pred.train <- predict(lda.train, diabetes.train)
+# Creating R object for predicted class data
+class.train <- pred.train$class
+# Tabulating this data
+tab.train <- table(class.train, diabetes.train$Diabetes)
+# Calculating the training error
+train.error <- (tab.train[1,2] + tab.train[2,1]) / sum(tab.train)  
+
+
+# Using the predict function on our testing data.
+lda.test.pred <- predict(lda.train, newdata = diabetes.test)
+# Creating R object for predicted class data
+lda.test.class <- lda.test.pred$class
+# Tabulating this data
+lda.test.tab <- table(lda.test.class, diabetes.test$Diabetes)
+# Calculating test error
+test.error <- (lda.test.tab[1,2] + lda.test.tab[2,1]) / sum(lda.test.tab)
+```
+
+__Training error__
+```{r Training error output, echo=FALSE, warning=FALSE, message=FALSE}
+train.error
+```
+
+
+__Testing error__
+```{r Testing error output, echo=FALSE, warning=FALSE, message=FALSE}
+test.error
+```
+
+### FN(False negative rate)
+
+Code used to produce FN rate for training and testing samples
+
+```{r FalseNegativeTrain, warning=FALSE, message=FALSE}
+FN.rate <- tab.train[1,2] / (tab.train[1,2] + tab.train[2,2])
+
+FN.test.rate <- lda.test.tab[1,2] / (lda.test.tab[1,2] + lda.test.tab[2,2])
+```
+
+__Training FN rate__
+```{r FNTrain, warning=FALSE, message=FALSE}
+FN.rate
+```
+
+__Testing FN rate__
+```{r FNTest, warning=FALSE, message=FALSE}
+FN.test.rate
+```
+
+
+### LDA Scatter plot
+
+```{r LDAvisual, out.width="80%", fig.align='center'}
+len <- 70
+xp <- seq(0, 80, length = len)     # points covering the range of Age
+yp <- seq(0, 81.25, length = len)    # points covering the range of BMI
+xygrid <- expand.grid(Age = xp, BMI = yp)
+
+# Using our prediction data to make a line classification
+grid.lda <- predict(lda.train, xygrid)
+
+# Diabetics will be red, and non-diabetics will be blue using our grid data
+colouring <- ifelse(grid.lda$class == 'Yes', "indianred1", "lightblue")
+
+# calculating the difference between the two posterior probabilities
+# Class boundary will be plotted at where zp = 0
+zp <- grid.lda$post[ ,1] - grid.lda$post[ ,2]
+
+# Plotting our scatter plot
+plot(xygrid, col = colouring, main = "LDA classifier for Diabetes", xlab = "Age",
+     ylab = "BMI", pch = 16)  
+contour(xp, yp, matrix(zp, len), levels = 0, add = TRUE, lwd = 2)
+legend(x = 'topright', legend = c('Not Diabetic', 'Diabetic'), col = c('blue','red'), pch = 10, cex=0.5, bg= 'white')
+points(diabetes$Age, diabetes$BMI,
+       col = def.col, pch = 20) 
+```
+
+### Comment on the results
+
+It is clear that a combination of a high age and high BMI is correlated with an increased prevalence of diabetes. The training error (22%), testing error (21%), training FN rate (63%) and testing FN rate (67%) can be understood from the graph, as many diabetics have been classified incorrectly around the age of 60 and BMI between 20 to 40. The high FN rate can be understood by the fact that diabetics and non-diabetics share similar characteristics. The LDA method has identified a cluster of individuals between the ages of 60 and 80 with a BMI between approximately 20 to 40 with a higher prevalence of diabetes.
+
+The confusion matrix below shows the error rate for both classes. Moving the LDA classifier rule to balance FN rates with FP rates may be more appropriate for the sample, due to similarities between the two classes.
+
+```{r Matricesoutput, warning=FALSE, message=FALSE}
+tab.train
+```
+
+
+## Machine Learning Part (d)
+
+### Modification of LDA rule to 0.4 
+
+```{r newmatrices, warning=FALSE, message=FALSE}
+# Moving our classifier to 0.4 for training data
+new.classes <- ifelse(pred.train$post[,2] > 0.4, 'Yes', 'No')
+new.tab <- table(new.classes, diabetes.train$Diabetes) # Confusion matrix table
+
+# Moving our classifier to 0.4 for testing data
+new.classes.test <- ifelse(lda.test.pred$post[,2] > 0.4, 'Yes', 'No')
+new.test.tab <- table(new.classes.test, diabetes.test$Diabetes) # Confusion matrix table
+```
+
+### Training error and the test error
+
+```{r class boundary results, echo=FALSE, warning=FALSE, message=FALSE}
+new.train.error <- (new.tab[1,2] + new.tab[2,1]) / sum(new.tab) 
+new.test.error <- (new.test.tab[1,2] + new.test.tab[2,1]) / sum(new.test.tab)  
+```
+
+__Training error with class boundary of 0.4__
+
+```{r newtrainerror, echo=FALSE, warning=FALSE, message=FALSE}
+new.train.error
+```
+
+__Testing error with class boundary 0.4__
+
+```{r newtesterror, echo=FALSE, warning=FALSE, message=FALSE}
+
+new.test.error
+```
+
+### Calculate FN rates
+
+__FN rate (Training)__
+
+```{r FNnewtrain, echo=FALSE, warning=FALSE, message=FALSE}
+new.FN.rate.train <- new.tab[1,2] / (new.tab[1,2] + new.tab[2,2])
+new.FN.rate.train
+```
+
+__FN rate (Testing)__
+
+```{r FNnewtest, echo=FALSE, warning=FALSE, message=FALSE}
+new.FN.rate <- new.test.tab[1,2] / (new.test.tab[1,2] + new.test.tab[2,2])
+new.FN.rate
+
+```
+
+
+### Scatterplot
+
+```{r newgraph, echo=FALSE, warning=FALSE, message=FALSE, out.width="80%", fig.align='center'}
+# Scatter plot of coloured grid points:
+plot(xygrid, col = colouring, main = "LDA classifier 0.4", xlab = "Age",
+     ylab = "BMI")   
+# Add class boundary (we modify the parameter "levels"):
+contour(xp, yp, matrix(zp, len), levels = c(0, 0.4), add = TRUE, lwd = 2) 
+# Add the training data points:
+points(diabetes$Age, diabetes$BMI, 
+       col = def.col, pch = 20) 
+```
+
+
+### Comment of results and compare to part (c)
+
+The modified LDA rule has returned a similar training error (22%) and test error (26%) to part (c). However, the modified LDA rule of 0.4 has reduced the training FN rate(44%) and testing FN rate (44%). The modified LDA rule has correctly classified more diabetics at the expense of incorrectly classifying more non-diabetics. The confusion matrix below demonstrates this change:   
+
+```{r confmatrix2, warning=FALSE, message=FALSE}
+new.tab
+
+```
+
+
+## Machine Learning Part (e)
+```{r fitting tree, message=FALSE, warning=FALSE, echo=FALSE}
+# Fitting Tree
+attach(diabetes)
+n_row <- nrow(diabetes)
+set.seed(1)
+
+rm(train)
+train <- sample(1:n_row, size = 750) # Same as A to C
+
+# train and test data for table and classes (head)
+diabetes.test <- diabetes[-train, ]
+diabetes.train <- diabetes[train, ]
+Diabetes_head.test <- Diabetes_head[-train]
+Diabetes_head.train <- Diabetes_head[train]
+
+```
+
+### Apply the random forest (bagging) method
+
+Code Used to produce random forest:
+
+- Age & BMI are two numerical characteristics in prediction
+- train is the training data 
+- ntree number of trees to produce 
+- mtry number of variables used to construct classifier 
+
+```{r question E random, warning=FALSE, message=FALSE}
+set.seed(3) # To keep the same values  
+
+#Random forest with 2 characteristics (AGE + BMI)
+QE.tree <- randomForest(Diabetes ~ Age + BMI, data = diabetes,
+                         subset = train, ntree = 400, mtry = 2, importance = TRUE)
+```
+
+
+### comment on the relative importance of the two variables for predicting Diabetes
+
+```{r varImpPlot, warning=FALSE, message=FALSE, out.width="80%", fig.align='center'}
+varImpPlot(QE.tree)
+```
+
+The graph (Left) illustrates that Age is the most important variable for Meandecreaseaccuracy (MDA). The results for the MDA graph show that the inclusion of Age as a variable is more important in comparison to BMI in the context of generating accurate results. This can be understood with the use of the initial age box plot, illustrating that there is a larger difference between diabetic and non-diabetic age groups.
+
+The graph (right) illustrates that BMI is the most important variable for Meandecreasegini (MDG) with Age being slightly less important. The results for the MDG graph show that BMI causes less Gini impurity during every split of the data. BMI is a better variable for MDG due to higher BMI scores (40+) being represented by mostly diabetic people as seen on the initial scatterplot.         
+
+
+
+### Calculate the training error and the test error
+
+__Test Error rate (%)__
+```{r question E test error, warning=FALSE, message=FALSE, echo=FALSE}
+# Calculating Test Error
+error.pred <- predict(QE.tree, diabetes.test, type= "class") 
+tab.test <- table(error.pred, Diabetes_head.test)
+
+test_error <- (tab.test[1,2] + tab.test[2,1]) / sum(tab.test)
+test_error 
+
+```
+
+__Train Error rate (%)__
+```{r question E train error, warning=FALSE, message=FALSE, echo=FALSE}
+# Training data error rate
+tab.train <- QE.tree$confusion
+
+train.error <- (tab.train[1,2] + tab.train[2,1]) / sum(tab.train)
+train.error
+```
+
+### Calculate false negative rate for training data and test data
+
+__FN rate (test data)__ 
+
+```{r question E test NR, warning=FALSE, message=FALSE, echo=FALSE}
+# False Negatives for test
+test_FN <- tab.test[1,2] / (tab.test[1,2] + tab.test[2,2])
+test_FN
+```
+
+__FN rate (training data)__ 
+
+```{r question E train NR, warning=FALSE, message=FALSE, echo=FALSE}
+# False Negatives for train
+train_FN <- tab.train[1,2] / (tab.train[1,2] + tab.train[2,2])
+train_FN 
+```
+
+### Scatterplot
+
+```{r randomscatter, warning=FALSE, message=FALSE, echo=FALSE, out.width="80%", fig.align='center'}
+len <- 70
+xp <- seq(0, 80, length = len) # points covering the range of Age classifier
+yp <- seq(0, 81.25, length = len) # points covering the range of BMI classifier
+xygrid <- expand.grid(Age = xp, BMI = yp)
+
+# Using our prediction data to make a classification
+grid.tree <- predict(QE.tree, xygrid)
+# Diabetics will be red, and non-diabetics will be blue using our grid data
+colouring <- ifelse(grid.tree == 'Yes', "indianred1", "lightblue")
+
+# Plotting our scatter plot
+plot(xygrid, col = colouring, main = "Random Forest (Bagging) classifier for Diabetes", xlab = "Age",ylab = "BMI", pch = 16)
+
+# Plotting our points
+legend(x = 'topright', legend = c('Not Diabetic', 'Diabetic'), col = c('blue','red'), pch = 10, cex=0.5, bg= 'white')
+# Add all data points as requested:
+points(diabetes$Age, diabetes$BMI,
+col = def.col, pch = 20) 
+
+```
+
+## Comment on the results and compare to parts (c) and (d)
+
+The testing (20%) and training (21%) errors for random tree are very similar to parts c and d. However, the random tree method has provided the best testing and training errors thus far. The random forest (bagging) method has been successful in generating a similar training FN rate (44%) as part d. The Random forest (bagging) method does have a higher testing FN rate (48%) than part d.   
+
+Unlike the LDA method, the random forest (bagging) approach has identified non-linear areas where the diagnosis of diabetes is most prominent (As illustrated on the scatter plot). There are some issues with this approach as certain diabetic outliers have caused the random forest (bagging) method to classify anyone in these areas as diabetic based on a single individual. The removal of outliers when carrying out random forest (bagging) is a potential strategy to avoid this issue. 
+
+Although it is clear that extremely high BMI scores are considered to represent diabetics, we cannot see a clear correlation between age and BMI in regards to diabetes when using this method.  
+
+## Machine Learning part (f)
+
+### Random forest (bagging) based on three characteristics: Age, BMI and PhysActive
+
+```{r question F random, warning=FALSE, message=FALSE}
+# Bagging and random forest trees 
+set.seed(4)
+#Random forest with three variables
+bag.tree <- randomForest(Diabetes ~ Age + BMI + PhysActive, data = diabetes, 
+                         subset = train, ntree = 400, mtry = 3, importance = TRUE)
+```
+
+### Training error and the test error
+Test Error rate (%)
+```{r question F test error, warning=FALSE, message=FALSE, echo=FALSE}
+# Calculating Test Error
+bag.pred <- predict(bag.tree, diabetes.test, type= "class")
+tab.test <- table(bag.pred, Diabetes_head.test)
+
+test_error <- (tab.test[1,2] + tab.test[2,1]) / sum(tab.test) # test error (22.105%)
+test_error 
+```
+
+Training Error rate (%)
+```{r question F training error, warning=FALSE, message=FALSE, echo=FALSE}
+
+# Training data error rate
+tab.train <- bag.tree$confusion
+
+train.error <- (tab.train[1,2] + tab.train[2,1]) / sum(tab.train)  
+train.error 
+```
+
+
+### FN rate for training and test data
+
+False negative rate (test data) 
+```{r question F test NR, warning=FALSE, message=FALSE, echo=FALSE}
+# False Negatives for test and train data
+test_FN <- tab.test[1,2] / (tab.test[1,2] + tab.test[2,2])
+test_FN 
+```
+
+False Negative rate (training data) 
+```{r question F training NR, warning=FALSE, message=FALSE, echo=FALSE}
+train_FN <- tab.train[1,2] / (tab.train[1,2] + tab.train[2,2])
+train_FN 
+```
+
+### Comment on importance of the variables
+
+```{r question F varImp, echo=FALSE, warning=FALSE, message=FALSE, out.width="80%", fig.align='center'}
+varImpPlot(bag.tree)
+```
+
+The results for MDA (Left) and MDG (Right) for BMI and age are given the same importance as our previous method.
+
+The MDA (Left) illustrates that the Physactive variable is less accurate when compared to age and BMI. This indicates that the inclusion of Physactive as a variable is of minimal impact upon the accuracy of the the random forest (bagging) method.
+
+The results of the MDG (Right) illustrate that Physactive is the least useful. It is important to note that Physactive is not numeric, consisting of "Yes" or "No". This prevents splits from having variety compared to numeric values such as age and BMI. Therefore, the MDG (Right) for Physactive cannot make effective splits. Phsyactive may be more useful if it reported a non-binary value such as: "hours of physical activity per day".    
+
+
+### Comment on the results and compare to part (e)
+
+The introduction of an additional variable to the random forest (Bagging) method has not produced any significant difference in training error (20%) or testing error (19%). This is due to the "Physactive" variable not contributing significantly to the prediction of diabetes as discussed previously.
+
+The training FN rate (43%) and testing FN rate (45%) for part f has found a slight improvement in results compared to part e, suggesting that the inclusion of more variables may yield more accurate results when predicting diabetes. Random Forest (bagging) can support a large number of different variables, which would assist in accuracy, as well as understanding which variables are the most important when predicting diabetes, such as a person's diet, exercise and income.
+
+
+##  Machine Learning part (g)
+
+Part (f) appears to be the best fit for the diabetes data set based on the results as it produced the lowest training error (20%) and testing error (19%). Furthermore, the model produced the lowest testing FN rate (45%) and the second lowest training FN rate (43%). The results produced by part f demonstrate the importance of additional variables to determine more accurate predictions.
+
+Random forest (bagging) is the optimal choice for this data set as it is able to randomly take small subsets of data instead of using all of the data at once, therefore reducing the impact that variance will have on predictions. Furthermore, as shown in the scatter plot in part e. Random forest (bagging) is effective at identifying areas where diabetes is most prominent, instead of relying on a linear trend.    
+
+Although LDA is an effective tool for binary classification situations such as the sample used in this report, it can become inaccurate when the average variables of classes are similar, as it must determine a linear trend to separate the two classes. Potentially, QDA may be a more effective method of predicting diabetes. 
+
+It is important to acknowledge that the results between parts d, e and f were marginally different. This could be due to the fact that there has been no distinction between type 1 and type 2 diabetics, with the diagnosis of type 1 diabetes not being linked to age or BMI. Therefore, the presence of type 1 diabetics may prevent a machine learning algorithm from predicting diabetes effectively when using age and BMI as predictors.
+
+# Bayesian Statistics Task
+
+## Bayesian Statistics part (a)
+
+```{r mena and SD calculation, warning=FALSE, message=FALSE, out.width="80%", fig.align='center'}
+corn_crake<-read_csv("corn_crake.csv")
+# change to a factor to use non first
+# corn_crake_f<-factor(c("None", "Sizefast", "Linseed", "Earlybird", "Allvit"))
+# corn_crake$Supplement<-as.factor(corn_crake$Supplement)
+corn_crake$Supplement_f <- factor(corn_crake$Supplement, levels = c("None", "Sizefast", "Linseed", "Earlybird", "Allvit"), labels = c("None", "Sizefast", "Linseed", "Earlybird", "Allvit"), ordered = FALSE)
+
+# Boxplots of the weight gain for each supplement group, showing the sample means for each group:
+
+library(ggplot2)
+ggplot(corn_crake, aes(x= Supplement_f, y = WeightGain , col= Supplement)) +
+  geom_boxplot(varwidth = TRUE) +
+  geom_jitter(width = 0.05) +
+  labs(x = "Supplement Used", 
+       y = "Weight Gained") +
+  theme(legend.position = "none")+
+  stat_summary(fun = mean,
+               colour = "darkblue",
+               geom = "point",
+               shape = 18,
+               size = 3, 
+               show.legend = FALSE)+
+  stat_summary(fun = mean,
+               colour = "darkblue",
+               geom = "text",
+               show.legend = FALSE,
+               vjust = -0.7,
+               aes(label = round(..y.., digits = 2)))
+```
+
+### Conclusion from plot
+
+While there is overlap between most groups as displayed on the box plot, the means for Sizefast, Linseed, and Earlybird are all higher than the control group. The Earlybird group in particular has a mean that is substantially higher than the control group, which may suggest a statistically significant difference.
+
+
+## Bayesian Statistics Part (b) 
+
+Parameter alpha3 describes the difference in underlying mean relative to the control group for observations in Group 3, which in our model refers to those hatchlings given the Linseed supplement.
+
+## Bayesian Statistics Part (c)
+
+```{r Part C, warning=FALSE, message=FALSE}
+corn_crake$Supplement_f
+
+# Produce estimates for mu_1, alpha_2, alpha_3, alpha_4 and alpha_5. 
+m <- lm(WeightGain ~ Supplement_f, data = corn_crake)
+m
+
+# The associated model matrix
+
+# The associated parameters are mu_1, alpha_2, alpha_3, alpha_4, and alpha_5
+# Hence the underlying mean for the None group is mu_1,
+# the underlying mean for Sizefast is mu_1 + alpha_2,
+# the underlying mean for Linseed is mu_1 + alpha_3,
+# the underlying mean for Earlybird is mu_1 + alpha_4,
+# the underlying mean for Allvit is mu_1 + alpha_5.
+
+# H_0: mu_1 = mu_2 = mu_3 = mu_4 = mu_5
+# H_1: not H_0
+
+anova(m)
+
+# Extract the p-value
+
+p_value <- anova(m)$`Pr(>F)`[1]
+p_value
+
+```
+
+The parameter inference generates the following estimates:
+
+mu1 = 15.625,
+Alpha2 = 3.375,
+Alpha3 = 2.875,
+Alpha4 = 7.25,
+Alpha5 = -1.375
+
+Our frequentist hypothesis test of size 0.05 results in a P-value of 0.002330595.  Given that it is below the significance threshold of 0.05, we may reject the null hypothesis and conclude that there is a statistically significant difference between the means.  The sampled hatchlings' weight gain does change when different food supplements are used. Further tests may assess the impact of particular supplements, however the box plot of this data shows mean of the Earlybird group is greater than the control group by a substantial degree, supporting the conclusion of this test.
+
+
+## Bayesian Statistics part (d) 
+
+Analysis via Tukey Honest Significant Differences:
+
+__Hypothesis__
+
+Given that:
+mu1 = None
+mu2 = Sizefast
+mu3 = Linseed
+mu4 = Earlybird
+mu5 = Allvit
+
+Null Hypothesis H0: mu1 = mu2
+Alternative Hypothesis H1: mu1 NOT = mu2
+
+Null Hypothesis H0: mu1 = mu3
+Alternative Hypothesis H1: mu1 NOT = mu3
+
+Null Hypothesis H0: mu1 = mu4
+Alternative Hypothesis H1: mu1 NOT = mu4
+
+Null Hypothesis H0: mu1 = mu5
+Alternative Hypothesis H1: mu1 NOT = mu5
+
+Null Hypothesis H0: mu2 = mu3
+Alternative Hypothesis H1: mu2 NOT = mu3
+
+Null Hypothesis H0: mu2 = mu4
+Alternative Hypothesis H1: mu2 NOT = mu4
+
+Null Hypothesis H0: mu2 = mu5
+Alternative Hypothesis H1: mu2 NOT = mu5
+
+Null Hypothesis H0: mu3 = mu4
+Alternative Hypothesis H1: mu3 NOT = mu4
+
+Null Hypothesis H0: mu3 = mu5
+Alternative Hypothesis H1: mu3 NOT = mu5
+
+Null Hypothesis H0: mu4 = mu5
+Alternative Hypothesis H1: mu4 NOT = mu5
+
+
+```{r Part D, warning=FALSE, message=FALSE}
+# Follow-up Analysis using Tukey Honest Significant Differences
+
+a <- aov(WeightGain ~ Supplement_f, data = corn_crake)
+coef(a)
+summary(a)
+TukeyHSD(a)
+m_mu <- lm(WeightGain ~ Supplement_f, data = corn_crake)
+m_mu
+```
+
+### Conclusion
+
+The adjusted p-value 0.4971994 corresponding to Sizefast-None is greater than 0.05.  We do not reject H0: mu1 = mu2 with test size 0.05 and conclude that mu1 = mu2
+
+The adjusted p-value 0.6459410 corresponding to Linseed-None is greater than 0.05.  We do not reject H0: mu1 = mu3 with test size 0.05 and conclude that mu1 = mu3
+
+The adjusted p-value 0.0113786 corresponding to Earlybird-None is less than 0.05.  We reject H0: mu1 = mu4 with test size 0.05 and conclude that mu1 DOES NOT = mu4
+
+The adjusted p-value 0.9638453 corresponding to Allvit-None is greater than 0.05.  We do not reject H0: mu1 = mu5 with test size 0.05 and conclude that mu1 = mu5
+
+The adjusted p-value 0.9992352 corresponding to Linseed-Sizefast is greater than 0.05.  We do not reject H0: mu2 = mu3 with test size 0.05 and conclude that mu2 = mu3
+
+The adjusted p-value 0.3592201 corresponding to Earlybird-Sizefast is greater than 0.05.  We do not reject H0: mu2 = mu4 with test size 0.05 and conclude that mu2 = mu4
+
+The adjusted p-value 0.1771593 corresponding to Allvit-Sizefast is greater than 0.05.  We do not reject H0: mu2 = mu5 with test size 0.05 and conclude that mu2 = mu5
+
+The adjusted p-value 0.2447264 corresponding to Earlybird-Linseed is greater than 0.05.  We do not reject H0: mu3 = mu4 with test size 0.05 and conclude that mu3 = mu4
+
+The adjusted p-value 0.2707790 corresponding to Allvit-Linseed is greater than 0.05.  We do not reject H0: mu3 = mu5 with test size 0.05 and conclude that mu3 = mu5
+
+The adjusted p-value 0.0018764 corresponding to Allvit-Earlybird is less than 0.05.  We reject H0: mu4 = mu5 with test size 0.05 and conclude that mu4 DOES NOT = mu5
+
+
+
+## Bayesian Statistics part (e) 
+
+__Hypotheses:__
+
+H0: ((mu2 + mu3 + mu4) / 3) - mu5 <= 5,
+H1: ((mu2 + mu3 + mu4) / 3) - mu5 > 5
+
+
+```{r Part e, warning=FALSE, message=FALSE}
+ght <- glht(m_mu, 
+            # Statement of null hypothesis:
+            linfct = c("Supplement_fAllvit  - (Supplement_fSizefast + Supplement_fLinseed + Supplement_fEarlybird) / 3 <= 5"))
+#
+summary(ght)
+
+```
+
+### Conclusion
+
+The P-value generated via the general linear hypothesis test is 0.305. Therefore we do not have a result of statistical significance to give grounds to reject our null hypothesis, which states that the hatchlings' weight gain resulting from the use of Allvit is less than 5 grams lower than the average obtained via Earlybird, Linseed, and Sizefast.
+
+
+## Bayesian Statistics Part (f)
+
+```{r Bayesian part f, warning=FALSE, message=FALSE, results='hide'}
+two_way_anova <- function(){
+  # Defining the data model
+  for(i in 1:I){#loop across rows(Fabric)
+    for(j in 1:J){#Loop across columns (Solution)
+      #y_mat matrix
+      y_mat[i,j]~dnorm(mu[i,j] , tau)# Parametrized by the precision tau = 1/sigma^2
+      mu[i,j]<-m + alpha[i] + beta[j]
+}
+}
+
+# Constraints for identifiability
+alpha[1] <- 0 #Corner constraint 
+beta[1] <- 0 #Corner constraint
+# Priors on unknown parameters
+m ~ dnorm(0.0, 1.0E-4)#Prior on m
+for(i in 2:I){
+  alpha[i] ~ dnorm(0.0, 1.0E-4)#Prior on non-constrained alphas
+}
+#
+for(j in 2:J){
+  beta[j] ~ dnorm(0.0, 1.0E-4)#Prior on non-constrained betas
+}
+tau ~ dgamma(1.0E-3, 1.0E-3) #Prior on tau
+# Also monitor sigma
+sigma <- 1.0 / sqrt(tau)#Definition fo sigma
+}
+# run code
+# waterproofing data
+y <- c(20.8, 20.6, 22.0, 22.6, 20.9,
+       19.4, 21.2, 21.8, 23.9, 22.4,
+       19.9, 21.1, 22.7, 22.7, 22.1)
+Fabric <- gl(3, 5, 15)# 3 levels, each repeated 5 times, a total of 15
+Fabric 
+Solution <- gl(5, 1, 15)# 5 levels, each repeated once, a total of 15
+Solution
+I <- 3 #Number of Fabrics
+J <- 5 #Number of Solutions
+# Express y as a matrix
+y_mat <- matrix(y, byrow = TRUE, nrow = I, ncol = J)
+data_two_way_anova <- list("y_mat", "I", "J")
+Bayesian_two_way_anova <- jags(data = data_two_way_anova,
+                               parameters.to.save = c("m",
+                                                      "alpha",
+                                                      "beta",
+                                                      "sigma",
+                                                      "tau"),
+                               n.iter = 100000,
+                               n.chains = 3,
+                               model.file = two_way_anova)
+
+```
+
+```{r Bayesian part f output, warning=FALSE, message=FALSE}
+
+print(Bayesian_two_way_anova, intervals = c(0.025, 0.5, 0.975))
+
+```
+
+Examining the relative differences for alpha2 and alpha3 (representing the difference in mean waterproofing value due to the change of fabric batch) vs. the corner constraints, we can see that the posterior median for each has increased.  The 95% credible intervals for each alpha parameter contains zero, with very similar lower and upper bounds, indicating a high degree of similarity within their posterior distribution, and overlapping significantly with the corner constraint.  From this we could conclude that there is not a significant change in mean waterproofing value for fabric batch 2 and 3 relative to the first.
+
+The beta parameters represent the change in mean when different silicone solutions are used.  Greater variation is seen within these beta parameters than the alpha values.  Three of the parameter inferences do not contain zero within their 95% credible intervals, indicating a significant difference in these posterior distributions relative to the corner constraint of beta1.  beta2 overlaps the mean of beta1, but all three others, beta3, beta4, and beta5, representing silicone solutions S3, S4, and S5 generate posterior means significantly higher relative to the corner constraint.
+
+Our inference of parameter tau, given the data, produces a precision value of 2.209 which is equivalent to a standard deviation of 0.743.  The   This represents a significant increase in precision within the posterior distribution relative to the low-informative prior distribution.
+
+Our inference has a corresponding DIC value of 49.5, which can be used in order to assess the quality of the model's fit against others.
+
+
+## Bayesian Statistics part (g)
+
+```{r Bayesian part g, warning=FALSE, message=FALSE, out.width="80%", fig.align='center'}
+
+#Trace plots and Posterior Densities.
+Bayesian_two_way_anova.mcmc <- as.mcmc(Bayesian_two_way_anova)
+Bayesian_two_way_anova.ggs <- ggs(Bayesian_two_way_anova.mcmc)
+
+threshold <- 0
+
+ggs_traceplot(Bayesian_two_way_anova.ggs, family="^alpha")
+
+ggs_density(Bayesian_two_way_anova.ggs, family="^alpha")+ # xlim(10, 30)
+    geom_vline(xintercept = threshold)
+
+ggs_traceplot(Bayesian_two_way_anova.ggs, family="^beta")
+
+ggs_density(Bayesian_two_way_anova.ggs, family="^beta")+ # xlim(10, 30)
+    geom_vline(xintercept = threshold)
+
+```
+
+The trace plots for our parameters show that the sampled values have achieved convergence among the chains and are following a horizontal pattern which has settled.  The posterior density distribution plots provide a graphical representation of the information we have previously interpreted, indicating that parameters alpha 2 and 3 have inferred means greater than the corner constraint, but with significant overlap within the distributions.  Among the beta parameters, 2 displays overlap with the corner constraint, but 3 through 5 all have larger means than the beta 1 value, which are significant.
+
+## Bayesian Statistics Part (h)
+
+```{r Bayesian part h, warning=FALSE, message=FALSE}
+ggs_caterpillar(Bayesian_two_way_anova.ggs, family="^alpha")+ # xlim(10, 30)
+  geom_vline(xintercept = threshold) 
+ggs_caterpillar(Bayesian_two_way_anova.ggs, family="^m")+  # xlim(10, 30)
+  geom_vline(xintercept = threshold)
+ggs_caterpillar(Bayesian_two_way_anova.ggs, family="^beta")+ # xlim(30, 50)
+  geom_vline(xintercept = threshold) 
+```
+
+Examining the caterpillar plots, showing the mean and 95% credible intervals for our estimated parameters, we may interpret that it is inconclusive as to whether the different fabric batches are impacting the waterproofing values.  Batches 2 and 3 result in larger means than the first group, but not to a degree that can be deemed significance, due to the credible interval including 0.  For our beta parameters, representing the change as a result of the use of the different silicone solutions, we may conclude that there is a significant difference as a result of the use of solution 3 to 5, relative to the first solution which serves as the corner constraint.
+
+
+
+## Bayesain Statistics Part (i)
+
+
+```{r Bayesian part i, warning=FALSE, message=FALSE, results='hide'}
+two_way_anova_2 <- function(){
+  # Defining the data model
+  for(i in 1:I){#loop across rows(Fabric)
+    for(j in 1:J){#Loop across columns (Solution)
+      # y_mat matrix
+      y_mat[i,j]~dnorm(mu[i,j] , tau)# Parametrised by the precision tau = 1/sigma^2
+      mu[i,j]<-m + alpha[i] + beta[j]
+    }
+  }
+  #Constraints for identification
+  alpha[1] <- 0 #Corner constraint 
+  beta[1] <- 0 #Corner constraint
+  
+  #Priors on unknown parameters
+  m ~ dnorm(0.0, 1.0E-4)#Prior on m
+  for(i in 2:I){
+    alpha[i] ~ dnorm(0.0, 1.0E-4)# Prior on non-constrained alphas
+  }
+  for(j in 2:J){
+    beta[j] ~ dnorm(0.0, 1.0E-4)# Prior on non-constrained betas
+  }
+  tau ~ dgamma(1.0E-3, 1.0E-3) # Prior on tau
+
+  # Also monitor sigma
+  sigma <- 1.0 / sqrt(tau)# Definition fo sigma
+  
+  difference[1] <- beta[3]-beta[1]
+  difference[2] <- beta[3]-beta[2]
+  difference[3] <- beta[3]-beta[4]
+  difference[4] <- beta[3]-beta[5]
+  
+}
+Bayesian_two_way_anova_2 <- jags(data = data_two_way_anova,
+                               parameters.to.save = c("m",
+                                                      "alpha",
+                                                      "beta",
+                                                      "sigma",
+                                                      "tau",
+                                                      "difference"),
+                               n.iter = 100000,
+                               n.chains = 3,
+                               model.file = two_way_anova_2)
+```
+
+
+```{r Bayesian part i print, warning=FALSE, message=FALSE}
+print(Bayesian_two_way_anova_2, intervals = c(0.025, 0.5, 0.975))
+```
+
+```{r Bayesian part i graphs, warning=FALSE, message=FALSE}
+
+Bayesian_two_way_anova_2.mcmc <- as.mcmc(Bayesian_two_way_anova_2)
+Bayesian_two_way_anova_2.ggs <- ggs(Bayesian_two_way_anova_2.mcmc)
+
+ggs_density(Bayesian_two_way_anova_2.ggs, family = "difference")+
+  geom_vline(xintercept = threshold)
+
+ggs_caterpillar(Bayesian_two_way_anova_2.ggs, family = "difference")+
+  geom_vline(xintercept = threshold)
+
+
+```
+
+
+By modifying our model to perform posterior inference for the difference between parameter Beta 3 and the other four values, we may make the following interpretations:  Solution 3 does result in a mean waterproofing value that is greater than solutions 1, 2, and 5.  However, for some of these parameters, such as Beta 5, the difference yields significant overlap of 0, indicating the lack of a significant difference that can be inferred in this case.  Difference 3, representing the difference between solution 3 and 4, indicates that solution 4 has a greater mean than 3, however with a small overlap of 0 within the distribution, it cannot be clearly deemed to be significant.  As a result, though the posterior inferences indicate the superiority of Solution S3 to certain others used in the test, the results do not support his hypothesis that S3 provides the maximum waterproofing value when compared against the 4 others.
+
+## Bayesian Statistics part (j)
+
+```{r Bayesian part j, warning=FALSE, message=FALSE, results='hide'}
+y <- c(20.8, 19.4, 19.9,
+       20.6, 21.2, 21.1,
+       22.0, 21.8, 22.7,
+       22.6, 23.9, 22.7,
+       20.9, 22.4, 22.1)
+x <- factor(c(rep(1,3), rep(2, 3), rep(3, 3), rep(4, 3), rep(5, 3)))
+
+fabrictest<-data.frame(y,x )
+
+y<-fabrictest$y
+group<-fabrictest$x
+
+Bayesian_anova <- function(){
+  # Data model part
+  for(j in 1:n){
+    #
+    # Response variable
+    #
+    y[j] ~ dnorm(mu[j], tau) # Parameterized by precision
+    
+    # Underlying mean
+    mu[j] <- m + beta[group[j]]
+    # Note that we use m as mu cannot be used twice for different quantities
+  }
+  
+  # Specify the prior distributions (or constraint)
+  m ~ dnorm(0.0, 1.0E-4)
+  beta[1] <- 0 # Corner constraint
+  for(i in 2:I){ # I is the number of groups
+    beta[i] ~ dnorm(0.0, 1.0E-4) # Prior on non-constrained alphas
+  }
+  tau ~ dgamma(1.0E-3, 1.0E-3) # Prior on tau
+  
+  # Also perform inference about sigma
+  sigma <- 1.0 / sqrt(tau) # Definition of sigma
+}
+n <- length(y)
+
+# Number of groups
+I <- 5
+
+# All the required data
+data_anova <- list("y", "group", "n", "I")
+#
+Bayesian_anova_inference <- jags(data = data_anova,
+                                 parameters.to.save = c("m", # m is mu above
+                                                        "beta",
+                                                        "sigma",
+                                                        "tau"),
+                                 n.iter = 100000,
+                                 n.chains = 5,
+                                 model.file = Bayesian_anova)
+```
+
+```{r Bayesian part j print, warning=FALSE, message=FALSE}
+# Produce output:
+  print(Bayesian_anova_inference, intervals = c(0.025, 0.5, 0.975))
+```
+
+## Bayesian Statistics part (k)
+
+```{r Bayesian part k, include=FALSE, warning=FALSE, message=FALSE}
+#Part K 
+Bayesian_anova_inference.mcmc <- as.mcmc(Bayesian_anova_inference)
+Bayesian_anova_inference.ggs <- ggs(Bayesian_anova_inference.mcmc)
+
+```
+
+
+```{r Bayesian part k2, warning=FALSE, message=FALSE, echo=FALSE}
+ggs_traceplot(Bayesian_anova_inference.ggs, family = "^beta")
+ggs_density(Bayesian_anova_inference.ggs, family = "^beta")+
+  geom_vline(xintercept = threshold)
+ggs_caterpillar(Bayesian_anova_inference.ggs, family = "^beta")+
+  geom_vline(xintercept = threshold)
+
+```
+
+Examining the posterior density distributions generated via the simplified model, we may observe that the inferred mean of all four solutions, represented by Beta 1 through 4, exceed that of the corner constraint.  Beta 2 results in a credible interval overlapping 0; the remaining three Beta parameters produce means and credible intervals above this level, indicating differences of statistical significance.
+
+## Bayesian Statistics part (l)
+
+The simpler model, which considers only the difference between the silicone solutions used, and not the fabric batches, does appear to be the superior model in this case.  In the case of the more complex model, the posterior distributions do not show significant differences between the batches.  However, the difference in mean waterproofing value between some of the silicone solutions used is clearly significant.
+
+Using the DIC value as a point of comparison, we generate a result of approximately 40 for the simpler model vs. 50 for the more complex one.  This indicates that the simpler model has a lower expected predictive error than the more complex one.  The simpler model also produces a slightly greater Tau value, indicating a larger increase in precision relative to the prior assumptions compared to the complex model.
